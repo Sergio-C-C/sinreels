@@ -59,20 +59,37 @@ jobs:
           sys.exit("no hay simulador de iPhone")
           ')
           echo "Simulador: $UDID"
+          set +e
           xcodebuild test \
             -project SinReels.xcodeproj -scheme SinReels \
-            -destination "id=$UDID" | tail -n 60
-          exit ${PIPESTATUS[0]}
+            -destination "id=$UDID" > xcodebuild-test.log 2>&1
+          STATUS=$?
+          # Solo lo útil: errores con su contexto, resultado de cada test y resumen.
+          grep -E -B6 -A3 "error: " xcodebuild-test.log | cut -c1-400
+          grep -E "Test Case .*(passed|failed)|Executed [0-9]+ tests|\*\* TEST|Testing failed|XCTAssert" xcodebuild-test.log | cut -c1-400
+          exit $STATUS
 
       - name: Compilar para iPhone (sin firmar)
         run: |
+          set +e
           xcodebuild build \
             -project SinReels.xcodeproj -scheme SinReels \
             -configuration Release -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" | tail -n 40
-          exit ${PIPESTATUS[0]}
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" > xcodebuild-build.log 2>&1
+          STATUS=$?
+          grep -E -B6 -A3 "error: " xcodebuild-build.log | cut -c1-400
+          grep -E "\*\* BUILD" xcodebuild-build.log
+          exit $STATUS
+
+      - name: Subir logs completos si algo falló
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-logs
+          path: xcodebuild-*.log
+          retention-days: 7
 
       - name: Empaquetar IPA
         run: |
