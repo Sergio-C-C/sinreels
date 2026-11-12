@@ -1,0 +1,95 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write   # solo para publicar el .ipa en Releases al empujar un tag v*
+
+jobs:
+  rules:
+    name: Reglas (Node)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node tools/check.mjs
+      - name: Prueba de page.js contra un DOM simulado
+        run: |
+          npm install --no-save --no-package-lock jsdom@24.1.3
+          node tools/dom-check.mjs
+
+  ios:
+    name: iOS (tests + IPA sin firmar)
+    needs: rules
+    # Imagen con Xcode 27 / SDK de iOS 27. Si el job se queda "Queued" sin arrancar,
+    # la etiqueta no existe para tu cuenta: cámbiala por macos-26 (Xcode 26 también sirve).
+    runs-on: xcode-27
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Versiones
+        run: |
+          sw_vers
+          xcodebuild -version
+
+      - name: Generar proyecto con XcodeGen
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Tests unitarios (simulador)
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          d = json.load(sys.stdin)["devices"]
+          for runtime in sorted(d, reverse=True):
+              if "iOS" not in runtime:
+                  continue
+              for dev in d[runtime]:
+                  if dev["name"].startswith("iPhone"):
+                      print(dev["udid"]); sys.exit(0)
+          sys.exit("no hay simulador de iPhone")
+          ')
+          echo "Simulador: $UDID"
+          xcodebuild test \
+            -project SinReels.xcodeproj -scheme SinReels \
+            -destination "id=$UDID" | tail -n 60
+          exit ${PIPESTATUS[0]}
+
+      - name: Compilar para iPhone (sin firmar)
+        run: |
+          xcodebuild build \
+            -project SinReels.xcodeproj -scheme SinReels \
+            -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" | tail -n 40
+          exit ${PIPESTATUS[0]}
+
+      - name: Empaquetar IPA
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/SinReels.app Payload/
+          zip -qry SinReels.ipa Payload
+          ls -lh SinReels.ipa
+          shasum -a 256 SinReels.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SinReels-ipa
+          path: SinReels.ipa
+          retention-days: 30
+
+      - name: Publicar en Releases (solo tags v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" SinReels.ipa --title "$GITHUB_REF_NAME" --generate-notes
