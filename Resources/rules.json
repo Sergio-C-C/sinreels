@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "_doc": "Único archivo de reglas. pathRules se evalúan en orden; la primera que coincide gana. action: allow | redirect | block. 'to' admite $1..$9. hosts = hosts permitidos en el frame principal (el resto se abre fuera). ruleHosts = hosts donde aplican pathRules. hideSelectors = CSS display:none. hideClosest/hideByText = ocultado por JS.",
+  "platforms": [
+    {
+      "id": "instagram",
+      "title": "Instagram",
+      "systemImage": "camera",
+      "startURL": "https://www.instagram.com/",
+      "dataStoreID": "6F1C2A4E-8B1D-4C3A-9E57-2D4B6A8C0E11",
+      "userAgent": "safari",
+      "hosts": [
+        "^([a-z0-9-]+\\.)?instagram\\.com$"
+      ],
+      "ruleHosts": [
+        "^(www\\.)?instagram\\.com$"
+      ],
+      "pathRules": [
+        { "pattern": "^/explore/search/?$", "action": "allow" },
+        { "pattern": "^/explore(/|$)", "action": "redirect", "to": "/explore/search/" },
+        { "pattern": "^/reels?/?$", "action": "redirect", "to": "/" },
+        { "pattern": "^/reels?/[^/]+", "action": "block", "to": "/" },
+        { "pattern": "^/([A-Za-z0-9._]+)/reels/?$", "action": "redirect", "to": "/$1/" },
+        { "pattern": "^/[A-Za-z0-9._]+/reels?/[^/]+", "action": "block", "to": "/" }
+      ],
+      "hideSelectors": [
+        "a[href='/reels/']",
+        "a[href^='/reels/']",
+        "a[href^='/reel/']",
+        "a[href$='/reels/']",
+        "article:has(a[href*='/reel/'])"
+      ],
+      "hideClosest": [
+        { "match": "a[href*='/reel/']", "closest": "article" }
+      ],
+      "hideByText": []
+    },
+    {
+      "id": "youtube",
+      "title": "YouTube",
+      "systemImage": "play.rectangle",
+      "startURL": "https://m.youtube.com/",
+      "dataStoreID": "A3D9E0B2-5C7F-4E61-8A24-9F0B1C3D5E72",
+      "userAgent": "safari",
+      "hosts": [
+        "^(m\\.|www\\.)?youtube\\.com$",
+        "^youtu\\.be$",
+        "^accounts\\.google\\.com$",
+        "^accounts\\.google\\.[a-z]{2,3}(\\.[a-z]{2})?$",
+        "^accounts\\.youtube\\.com$",
+        "^consent\\.(youtube|google)\\.com$"
+      ],
+      "ruleHosts": [
+        "^(m\\.|www\\.)?youtube\\.com$"
+      ],
+      "pathRules": [
+        { "pattern": "^/shorts/([A-Za-z0-9_-]+)", "action": "redirect", "to": "/watch?v=$1" },
+        { "pattern": "^/shorts/?$", "action": "redirect", "to": "/" },
+        { "pattern": "^/((@|c/|channel/|user/)[^/]+)/shorts/?$", "action": "redirect", "to": "/$1" }
+      ],
+      "hideSelectors": [
+        "ytm-reel-shelf-renderer",
+        "ytm-shorts-lockup-view-model",
+        "ytm-shorts-lockup-view-model-v2",
+        "ytm-rich-section-renderer:has(ytm-shorts-lockup-view-model)",
+        "ytm-rich-section-renderer:has(ytm-shorts-lockup-view-model-v2)",
+        "ytm-rich-section-renderer:has(ytm-reel-shelf-renderer)",
+        "ytm-item-section-renderer:has(ytm-reel-shelf-renderer)",
+        "grid-shelf-view-model:has(ytm-shorts-lockup-view-model)",
+        "grid-shelf-view-model:has(ytm-shorts-lockup-view-model-v2)",
+        "ytm-rich-item-renderer:has(a[href^='/shorts/'])",
+        "ytm-video-with-context-renderer:has(a[href^='/shorts/'])",
+        "ytm-compact-video-renderer:has(a[href^='/shorts/'])",
+        "ytm-pivot-bar-item-renderer:has(.pivot-shorts)",
+        "a[href^='/shorts']",
+        "a[href$='/shorts']"
+      ],
+      "hideClosest": [],
+      "hideByText": [
+        { "selector": "ytm-pivot-bar-item-renderer", "text": "^Shorts$" },
+        { "selector": "ytm-chip-cloud-chip-renderer", "text": "^Shorts$" },
+        { "selector": "yt-chip-cloud-chip-view-model", "text": "^Shorts$" }
+      ]
+    }
+  ]
+}
