@@ -1,0 +1,10 @@
+# Generado por XcodeGen en CI; no se versiona
+*.xcodeproj/
+App/Info.plist
+build/
+DerivedData/
+Payload/
+*.ipa
+.DS_Store
+node_modules/
+.claude/
