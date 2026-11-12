@@ -103,7 +103,8 @@ final class WebSession: NSObject, ObservableObject, Identifiable, WKNavigationDe
             return .cancel
         case .external:
             log.add(platform.id, "externo \(url.absoluteString)")
-            UIApplication.shared.open(url)
+            // Con completionHandler explícito se elige la variante síncrona (la otra exige await).
+            UIApplication.shared.open(url, options: [:], completionHandler: nil)
             return .cancel
         }
     }
